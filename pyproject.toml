@@ -5,6 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "agentemip"
 version = "0.1.0"
+package-mode = false
 
 [tool.setuptools]
 # Aquí le decimos exactamente qué carpetas registrar como paquetes
