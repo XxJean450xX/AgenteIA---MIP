@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "AgenteMIP"
+version = "0.1.0"
+
+[tool.setuptools]
+# Aquí le decimos exactamente qué carpetas registrar como paquetes
+packages = ["backend", "frontend"]

@@ -1,0 +1,5 @@
+pyproject.toml
+AgenteMIP.egg-info/PKG-INFO
+AgenteMIP.egg-info/SOURCES.txt
+AgenteMIP.egg-info/dependency_links.txt
+AgenteMIP.egg-info/top_level.txt
