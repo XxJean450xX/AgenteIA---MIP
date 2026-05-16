@@ -15,7 +15,7 @@ st.set_page_config(
     page_icon="❁"
 )
 
-st.title("🤖 Agente Inteligente MIP")
+st.title("🤖 Agente - Programación Entera Mixta")
 
 if "chat" not in st.session_state:
     st.session_state.chat = []
