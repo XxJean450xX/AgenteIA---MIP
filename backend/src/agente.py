@@ -1,6 +1,11 @@
+import os
 from google import genai
+from dotenv import load_dotenv
 
-client = genai.Client(api_key="AIzaSyANHJrHKqK6ajsV57AhbssiioC4vV5mHgs")
+load_dotenv()
+
+
+client = genai.Client(api_key=os.getenv("API_GEM"))
 
 contexto = """
 Eres un agente experto en investigación de operaciones

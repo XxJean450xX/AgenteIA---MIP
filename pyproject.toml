@@ -10,3 +10,5 @@ package-mode = false
 [tool.setuptools]
 # Aquí le decimos exactamente qué carpetas registrar como paquetes
 packages = ["backend", "frontend"]
+
+API
