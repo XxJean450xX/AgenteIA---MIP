@@ -12,7 +12,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Agente MIP",
-    page_icon="🤖"
+    page_icon="❁"
 )
 
 st.title("🤖 Agente Inteligente MIP")
