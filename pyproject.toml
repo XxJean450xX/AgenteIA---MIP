@@ -1,12 +1,16 @@
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
+[tool.poetry]
 name = "agentemip"
 version = "0.1.0"
+description = ""
+authors = ["Jean"]
 package-mode = false
 
-[tool.setuptools]
-# Aquí le decimos exactamente qué carpetas registrar como paquetes
-packages = ["backend", "frontend"]
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+streamlit = "*"
+google-genai = "*"
+python-dotenv = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
