@@ -2,3 +2,5 @@
 .venv/
 *.pyc
 .devcontainer
+poetry.lock
+.vscode/
