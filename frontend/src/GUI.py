@@ -20,18 +20,12 @@ st.caption("Asistente para Programación Entera Mixta con selección de proveedo
 MODELOS_PREDEFINIDOS = {
     "OpenRouter": [
         "deepseek/deepseek-v4-flash:free",
-        "deepseek/deepseek-chat",
-        "openai/gpt-4o-mini",
     ],
     "DeepSeek": [
         "deepseek-v4-flash",
-        "deepseek-chat",
-        "deepseek-reasoner",
     ],
     "Gemini": [
         "gemini-2.5-flash-lite",
-        "gemini-2.5-flash",
-        "gemini-2.5-pro",
     ],
 }
 
