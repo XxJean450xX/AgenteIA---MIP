@@ -1,98 +1,193 @@
 # AgenteIA — MIP
 
-Sistema inteligente basado en IA para la formulación, análisis y resolución de problemas de **Programación Entera Mixta (MIP)** mediante una interfaz web interactiva premium.
-
-Este proyecto integra un motor matemático riguroso (PuLP con solver CBC) con Inteligencia Artificial (Gemini) para crear una herramienta que no solo resuelve problemas, sino que ayuda a interpretarlos, simularlos y tomar decisiones de negocio.
-
-## Implementación en producción
-
-**Demo en línea:**  
-https://agenteia---mip-vzvmgce9nzfzafcfdqd6qe.streamlit.app/
+Sistema inteligente de solución genérica para problemas de **Programación Entera Mixta (MILP)**. El usuario ingresa cualquier enunciado en lenguaje natural y el sistema formula el modelo matemático en LaTeX, genera y ejecuta el código de optimización en Python (`PuLP`), y entrega un análisis crítico formal redactado por el Agente de IA (`Gemini`).
 
 ---
 
-## Características Principales
+## Arquitectura del Sistema
 
-1. **Solver MIP Realista:**
-   - Resuelve el clásico problema de planificación de producción de fábrica.
-   - Modela simultáneamente 3 tipos de variables: continuas (producción), enteras (turnos) y binarias (activación de máquinas).
-   - Optimización de costos fijos, variables y de materia prima frente a restricciones de capacidad, presupuesto y demanda.
+El sistema opera en una **pipeline de cuatro etapas secuenciales**. El usuario interactúa únicamente con una interfaz de una sola vista en Streamlit; el resto ocurre en el backend de forma automática.
 
-2. **Agente IA Enriquecido (Gemini):**
-   - **Explicar resultados:** Traduce los datos matemáticos a lenguaje natural comprensible.
-   - **Generar escenarios:** Propone alternativas "What-If" para explorar sensibilidades del modelo.
-   - **Proponer mejoras:** Analiza holguras y uso de capacidades para identificar cuellos de botella operativos.
-   - **Apoyar decisiones:** Evalúa y compara rigurosamente distintos escenarios de producción.
+```mermaid
+flowchart TD
+    U([Usuario]) -- Enunciado en lenguaje natural --> GUI
 
-3. **Interfaz Gráfica Premium (Streamlit):**
-   - Diseño moderno con tema oscuro, gradientes CSS inyectados y componentes fluidos.
-   - **Visualizaciones interactivas** con Plotly: distribución de costos, uso de máquinas, plan óptimo.
-   - Panel interactivo para análisis de sensibilidad y comparativa en vivo (What-If).
+    subgraph Frontend ["FRONTEND — Streamlit (GUI.py)"]
+        GUI[Vista Única de Entrada]
+    end
 
----
+    subgraph Backend ["BACKEND — Motor de Optimización"]
+        direction TB
+        A1["① agente.py\nformular_problema()\n— Extrae variables, FO y restricciones\n— Produce LaTeX formal"]
+        A2["② agente.py\ngenerar_codigo_pulp()\n— Traduce la formulación a código Python\n— Instancia variables PuLP exactas del problema"]
+        A3["③ ejecutor_mip.py\nejecutar_codigo_pulp()\n— Exec seguro del código generado\n— Extrae diccionario 'resultados'"]
+        A4["④ agente.py\nexplicar_resultados()\n— Interpreta solución óptima\n— Redacta análisis y recomendaciones"]
 
-## Modelo Matemático Implementado
+        A1 --> A2 --> A3 --> A4
+    end
 
-**Función Objetivo (Maximizar):**
-```latex
-Max Z = Σ_p (c_p * x_p) - Σ_m (F_m * y_m) - Σ_m (T_m * t_m) - Σ_p (Mat_p * x_p)
-```
-> Ganancia neta = ingresos - costos fijos - costos de turnos - costos materia prima.
+    subgraph Solver ["SOLVER MATEMÁTICO"]
+        CBC["PuLP + CBC\n(Coin-OR Branch & Cut)\nOptimización exacta MILP"]
+    end
 
-**Restricciones:**
-1. Capacidad: `Σ_p (a_mp * x_p) <= H_m * t_m`
-2. Activación: `t_m <= T_max * y_m`
-3. Demanda: `x_p <= d_p`
-4. Presupuesto: `Σ_p (Mat_p * x_p) <= Budget`
+    subgraph LLM ["AGENTE DE IA"]
+        GEM["Google Gemini 2.5\nFormulación · Codificación · Análisis"]
+    end
 
----
+    GUI --> A1
+    A1 <--> GEM
+    A2 <--> GEM
+    A3 --> CBC
+    A4 <--> GEM
+    A4 -- Formulación LaTeX · Código · Resultados · Análisis --> OUT
 
-## Instalación y Ejecución Local
-
-1. Clona el repositorio e instala dependencias:
-```bash
-pip install pulp plotly pandas google-genai streamlit python-dotenv pytest
-```
-
-2. Configura tus credenciales:
-Crea un archivo `.env` en la raíz del proyecto y agrega tu API Key de Gemini:
-```env
-API_GEM=tu_api_key_aqui
-```
-
-3. Ejecuta la aplicación:
-```bash
-streamlit run frontend/src/GUI.py
-```
-
-4. Ejecuta las pruebas unitarias (TDD):
-```bash
-python -m pytest tests/
+    subgraph Output ["SALIDA EN INTERFAZ"]
+        OUT["Formulación Matemática (LaTeX)\nCódigo Python (PuLP)\nValor Z + Variables Óptimas\nGráfico de Barras (Plotly)\nAnálisis Crítico del Agente"]
+    end
 ```
 
 ---
 
-## Arquitectura del Proyecto
+## Descripción de Componentes
+
+### `frontend/src/GUI.py` — Interfaz de Usuario (Streamlit)
+
+Interfaz de **vista única** con diseño formal y minimalista. El usuario ingresa el enunciado del problema y el sistema muestra el progreso secuencial:
+
+1. Formulación matemática en LaTeX
+2. Código PuLP autogenerado por la IA
+3. Estado del solver, valor objetivo ($Z$) y tabla de variables óptimas
+4. Gráfico de barras interactivo (Plotly) con la distribución de variables
+5. Análisis crítico y conclusión del Agente IA
+
+### `backend/src/agente.py` — Orquestador de IA
+
+Módulo central que coordina tres llamadas al LLM con prompts inyectados de manera estructurada:
+
+| Función | Responsabilidad |
+| :--- | :--- |
+| `formular_problema(enunciado)` | Extrae y estructura el modelo matemático formal en LaTeX (variables, FO, restricciones). |
+| `generar_codigo_pulp(enunciado, formulacion)` | Traduce la formulación al código Python exacto en PuLP, con las variables, datos y restricciones reales del problema. |
+| `explicar_resultados(enunciado, resultados)` | Interpreta el resultado del solver y redacta el análisis crítico y las recomendaciones de decisión. |
+
+### `backend/src/ejecutor_mip.py` — Motor de Ejecución Dinámica
+
+Ejecuta de forma segura el código Python generado por la IA usando `exec()` en un entorno aislado. Extrae el diccionario `resultados` estandarizado con:
+- `"estado"`: Estado del solver (e.g., `"Optimal"`)
+- `"objetivo"`: Valor de la función objetivo $Z$
+- `"variables"`: Mapa `{nombre_variable: valor_óptimo}`
+
+Si el código generado contiene errores de sintaxis o falla la ejecución, el módulo los intercepta y los retorna de forma controlada sin romper la aplicación.
+
+### `backend/src/modelo_mip.py` — Modelo Estático de Referencia
+
+Motor de optimización del modelo original de planificación de producción de fábrica. Se mantiene como referencia de implementación y como objetivo de la suite de tests TDD de 19 casos.
+
+### `tests/` — Suite de Pruebas TDD
+
+| Archivo | Tests | Descripción |
+| :--- | :---: | :--- |
+| `test_ejecutor.py` | 2 | Valida ejecución segura de código dinámico y captura de errores. |
+| `test_agente.py` | 3 | Valida los tres flujos de prompts del orquestador con mocks del LLM. |
+| `test_modelo_mip.py` | 19 | Valida el solver estático (variables mixtas, restricciones, escenarios). |
+| **Total** | **24** | **24 passed** con `pytest` |
+
+### `tests/testeos.md` — Banco de Ejercicios MILP
+
+Archivo con **10 enunciados en lenguaje natural** de distintos tipos de problemas MILP (transporte, producción, dieta, turnos, selección de proyectos, etc.). Sirve como batería de pruebas funcionales de caja negra para verificar la generalidad del sistema.
+
+---
+
+## Estructura de Archivos
 
 ```text
 AgenteIA---MIP/
 │
 ├── backend/
 │   ├── src/
-│   │   ├── agente.py          # Lógica de prompts inyectados con Gemini
-│   │   └── modelo_mip.py      # Motor de optimización PuLP + CBC
+│   │   ├── agente.py           # Orquestador de prompts (Gemini)
+│   │   ├── ejecutor_mip.py     # Motor de ejecución dinámica (exec seguro)
+│   │   └── modelo_mip.py       # Solver estático de referencia (PuLP + CBC)
 │   └── __init__.py
 │
 ├── frontend/
 │   └── src/
-│       └── GUI.py             # Interfaz premium con 4 tabs y Plotly
+│       └── GUI.py              # Interfaz de vista única (Streamlit + Plotly)
 │
 ├── tests/
-│   ├── test_modelo_mip.py     # TDD Tests del solver (vertical slices)
-│   └── test_agente.py         # Tests lógicos de prompts
+│   ├── test_agente.py          # Tests del orquestador (mocks LLM)
+│   ├── test_ejecutor.py        # Tests del motor de ejecución dinámica
+│   ├── test_modelo_mip.py      # Tests TDD del solver estático (19 casos)
+│   └── testeos.md              # Banco de 10 ejercicios MILP de verificación
 │
-├── data/                      # Documentación académica
-├── .env                       # Credenciales de IA
-├── pyproject.toml             # Dependencias
+├── data/                       # Documentación académica de referencia
+├── DOCUMENTO_ENTREGABLE.md     # Reporte académico completo (caso de estudio)
+├── .env                        # Credenciales de IA (API_GEM=...)
+├── pyproject.toml              # Dependencias del proyecto (Poetry)
 └── README.md
 ```
+
+---
+
+## Tecnologías Utilizadas
+
+| Componente | Tecnología | Rol |
+| :--- | :--- | :--- |
+| Interfaz Web | `Streamlit` | Vista única, renderizado de LaTeX y Plotly |
+| Gráficos | `Plotly Express` | Visualización interactiva de variables óptimas |
+| Modelado MILP | `PuLP` | Definición de variables, FO y restricciones |
+| Solver | `CBC (Coin-OR)` | Motor de optimización exacta Branch & Cut |
+| Agente de IA | `Google Gemini 2.5` | Formulación, codificación y análisis |
+| SDK de IA | `google-genai` | Cliente oficial de la API de Gemini |
+| Datos | `pandas` | Estructuración de resultados en tablas |
+| Variables de entorno | `python-dotenv` | Gestión de credenciales |
+| Pruebas | `pytest` | Suite TDD de 24 casos |
+
+---
+
+## Instalación y Ejecución Local
+
+**1. Instalar dependencias:**
+```bash
+pip install pulp plotly pandas google-genai streamlit python-dotenv pytest
+```
+
+**2. Configurar credenciales:**
+
+Crear un archivo `.env` en la raíz del proyecto:
+```env
+API_GEM=tu_api_key_de_gemini
+```
+
+**3. Iniciar la aplicación:**
+```bash
+python -m streamlit run frontend/src/GUI.py
+```
+
+**4. Ejecutar la suite de pruebas TDD:**
+```bash
+python -m pytest tests/ -v
+```
+
+---
+
+## Flujo de Uso
+
+1. Abrir la aplicación en el navegador (`localhost:8501`).
+2. Ingresar el enunciado completo del problema MILP en el área de texto.
+3. Presionar **Procesar Problema**.
+4. El sistema ejecutará automáticamente las cuatro etapas y mostrará:
+   - La formulación matemática en LaTeX.
+   - El código Python generado.
+   - Los valores óptimos con gráfico interactivo.
+   - El análisis crítico del Agente IA.
+
+---
+
+## Metodología de Desarrollo
+
+El proyecto fue construido bajo la metodología **TDD (Test-Driven Development)** con ciclos **Red → Green → Refactor**:
+
+- Cada módulo fue validado con tests escritos **antes** de su implementación.
+- Los mocks del LLM en `test_agente.py` garantizan que los tests del orquestador sean deterministas e independientes de la disponibilidad de la API.
+- El módulo `ejecutor_mip.py` fue diseñado para interceptar fallos del código generado por la IA sin propagar excepciones no controladas a la capa de interfaz.
