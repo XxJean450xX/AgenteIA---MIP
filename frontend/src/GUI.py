@@ -1,47 +1,109 @@
 import sys
 import os
 
-sys.path.append(
-    os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "../..")
-    )
-)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
+import streamlit as st
+import pandas as pd
+import plotly.express as px
 
 from backend.src import agente
-import streamlit as st
+from backend.src import ejecutor_mip
 
+# Configuracion formal
 st.set_page_config(
-    page_title="Agente MIP",
-    page_icon="❁"
+    page_title="Agente MILP - Investigacion de Operaciones",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-st.title("🤖 Agente - Programación Entera Mixta")
+# Estilo minimalista y serio
+st.markdown("""
+<style>
+    .stApp {
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    h1, h2, h3 {
+        font-weight: 400;
+        color: #333333;
+    }
+    .status-box {
+        padding: 15px;
+        border-left: 4px solid #0052cc;
+        background-color: #f4f5f7;
+        margin-bottom: 20px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-if "chat" not in st.session_state:
-    st.session_state.chat = []
+st.title("Sistema Inteligente de Optimizacion MILP")
+st.markdown("Ingrese el enunciado completo de su problema de Programacion Entera Mixta para iniciar el proceso de modelado, ejecucion y analisis.")
 
-# Mostrar historial
-for msg in st.session_state.chat:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+if "estado_ejecucion" not in st.session_state:
+    st.session_state.estado_ejecucion = None
 
-# Entrada
-if consulta := st.chat_input("Escribe tu consulta..."):
+enunciado = st.text_area("Enunciado del Problema:", height=200, placeholder="Ejemplo: Un agricultor dispone de 100 hectareas...")
 
-    st.session_state.chat.append({
-        "role": "user",
-        "content": consulta
-    })
+if st.button("Procesar Problema", type="primary"):
+    if not enunciado.strip():
+        st.error("Por favor, ingrese un enunciado valido.")
+    else:
+        st.session_state.estado_ejecucion = "en_proceso"
+        
+        try:
+            # 1. Formulacion Matematica
+            st.markdown("### 1. Formulacion Matematica")
+            with st.spinner("El Agente IA esta formulando el modelo..."):
+                formulacion = agente.formular_problema(enunciado)
+            st.markdown(formulacion)
+            st.divider()
 
-    with st.chat_message("user"):
-        st.markdown(consulta)
-    
-    respuesta = agente.consultar_agente(consulta)
+            # 2. Generacion de Codigo
+            st.markdown("### 2. Codigo de Solucion (PuLP)")
+            with st.spinner("El Agente IA esta generando el codigo optimo..."):
+                codigo_pulp = agente.generar_codigo_pulp(enunciado, formulacion)
+            st.code(codigo_pulp, language="python")
+            st.divider()
 
-    st.session_state.chat.append({
-        "role": "assistant",
-        "content": respuesta
-    })
+            # 3. Ejecucion
+            st.markdown("### 3. Ejecucion del Solver")
+            with st.spinner("Ejecutando CBC Solver..."):
+                resultados = ejecutor_mip.ejecutar_codigo_pulp(codigo_pulp)
+            
+            if resultados.get("estado") == "Error":
+                st.error("Error durante la ejecucion del codigo.")
+                st.code(resultados.get("error"))
+            else:
+                st.success(f"Estado Final del Solver: {resultados.get('estado')}")
+                st.metric("Valor de la Funcion Objetivo (Z)", round(resultados.get('objetivo', 0), 4))
+                
+                # Renderizado generico de variables de decision
+                variables = resultados.get("variables", {})
+                if variables:
+                    st.markdown("**Variables de Decision Optimas:**")
+                    df_vars = pd.DataFrame({
+                        "Variable": list(variables.keys()),
+                        "Valor": list(variables.values())
+                    })
+                    st.dataframe(df_vars, use_container_width=True)
+                    
+                    # Grafico dinamico requerido por el usuario
+                    st.markdown("### Analisis Visual")
+                    fig = px.bar(df_vars, x="Variable", y="Valor", 
+                                 title="Distribucion de Valores de Variables Optimas",
+                                 text="Valor", color="Variable")
+                    fig.update_traces(textposition='outside')
+                    st.plotly_chart(fig, use_container_width=True)
 
-    with st.chat_message("assistant"):
-        st.markdown(respuesta)
+                st.divider()
+
+                # 4. Analisis Final
+                st.markdown("### 4. Conclusion del Agente IA")
+                with st.spinner("El Agente IA esta analizando los resultados..."):
+                    explicacion = agente.explicar_resultados(enunciado, resultados)
+                st.markdown(explicacion)
+
+        except Exception as e:
+            st.error(f"Error critico en el flujo: {str(e)}")
+            
+        st.session_state.estado_ejecucion = "completado"
