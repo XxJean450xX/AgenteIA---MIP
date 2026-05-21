@@ -1,4 +1,4 @@
-# Grupo 4: Programación Lineal Entera Mixta
+# Grupo 2: Programación Lineal Entera Mixta
 
 **Heylin Daniela Hernández Pérez, Ana Laura Morcote Chacón, Oscar Manuel Contreras Gacha, Juan Pablo Bustos Ureña, Daniel Mateo Ballesteros**
 
