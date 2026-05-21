@@ -1,8 +1,6 @@
 # Grupo 2: Programación Lineal Entera Mixta
 
-**Heylin Daniela Hernández Pérez, Ana Laura Morcote Chacón, Oscar Manuel Contreras Gacha, Juan Pablo Bustos Ureña, Daniel Mateo Ballesteros**
-
-**Universidad Distrital Francisco José de Caldas**
+**Recurso sacado de: Universidad Distrital Francisco José de Caldas**
 
 ---
 
